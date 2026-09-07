@@ -1,0 +1,13 @@
+{
+  "provider": "RunPod",
+  "datacenter": "EU-RO-1",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "gpu_memory_gb": 24,
+  "gpu_driver": "580.126.20",
+  "peak_vram_gb": 3.1,
+  "cpu": "AMD Ryzen 9 7950X",
+  "cpu_cores": 16,
+  "cpu_threads": 32,
+  "ram_gb": 124,
+  "os": "Ubuntu 24.04.2 LTS"
+}

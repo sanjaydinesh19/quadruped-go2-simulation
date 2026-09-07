@@ -1,0 +1,47 @@
+{
+  "task": "Go2-Obstacle-v0",
+  "robot": "Unitree Go2",
+  "algorithm": "PPO",
+  "library": "rsl-rl-lib 3.1.2",
+  "num_envs": 4096,
+  "max_iterations": 1500,
+  "num_steps_per_env": 24,
+  "batch_per_iteration": 98304,
+  "total_timesteps": 147456000,
+  "save_interval": 50,
+  "seed": 42,
+  "headless": true,
+  "policy": {
+    "class": "ActorCritic",
+    "actor_hidden_dims": [512, 256, 128],
+    "critic_hidden_dims": [512, 256, 128],
+    "activation": "elu",
+    "init_noise_std": 1.0,
+    "actor_obs_normalization": false,
+    "critic_obs_normalization": false,
+    "observation_dim": 235,
+    "action_dim": 12
+  },
+  "algorithm_cfg": {
+    "value_loss_coef": 1.0,
+    "use_clipped_value_loss": true,
+    "clip_param": 0.2,
+    "entropy_coef": 0.01,
+    "num_learning_epochs": 5,
+    "num_mini_batches": 4,
+    "learning_rate": 0.001,
+    "schedule": "adaptive",
+    "gamma": 0.99,
+    "lam": 0.95,
+    "desired_kl": 0.01,
+    "max_grad_norm": 1.0
+  },
+  "obs_groups": { "policy": ["policy"], "critic": ["policy"] },
+  "runtime": {
+    "isaac_sim": "5.1.0-rc.19",
+    "isaac_lab": "2.3.2",
+    "torch": "2.7.0+cu128",
+    "python": "3.11.13",
+    "gymnasium": "1.2.1"
+  }
+}
