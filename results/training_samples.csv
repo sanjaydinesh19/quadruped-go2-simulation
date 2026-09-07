@@ -1,0 +1,9 @@
+iteration,mean_reward,note
+29,-7.86,robot collapses immediately
+103,2.10,reward has crossed zero
+198,5.78,
+291,9.16,
+433,10.96,
+895,15.24,
+1444,18.26,
+1499,19.77,final checkpoint

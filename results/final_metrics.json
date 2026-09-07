@@ -1,0 +1,32 @@
+{
+  "final": {
+    "iteration": 1499,
+    "mean_reward": 19.77,
+    "checkpoint": "model_1499.pt"
+  },
+  "late_training_sample": {
+    "approx_iteration": 950,
+    "mean_reward": 16.33,
+    "mean_episode_length": 940.09,
+    "episode_termination_base_contact": 0.0870,
+    "metrics_base_velocity_error_vel_xy": 0.4187,
+    "episode_reward_track_lin_vel_xy_exp": 1.1212,
+    "note": "read live during the run; iteration approximate"
+  },
+  "throughput": {
+    "steps_per_second": 37400,
+    "iteration_time_s_clean": 2.63,
+    "iteration_time_s_observed": 2.84,
+    "collection_time_s": 2.552,
+    "learning_time_s": 0.073
+  },
+  "wall_clock_minutes": 76,
+  "videos": {
+    "count": 6,
+    "resolution": "1280x720",
+    "fps": 50,
+    "frames": 400,
+    "duration_s": 8.0,
+    "terrains": ["flat", "easy", "obstacle", "hard", "stairs", "slopes"]
+  }
+}
