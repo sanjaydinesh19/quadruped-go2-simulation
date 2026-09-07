@@ -1,0 +1,44 @@
+--- a/sim/scripts/train.py
++++ b/sim/scripts/train.py
+@@ -71,7 +71,6 @@
+ from isaaclab.utils.dict import print_dict
+ from isaaclab.utils.io import dump_yaml
+ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+-from isaaclab_rl.rsl_rl.utils import handle_deprecated_rsl_rl_cfg
+ 
+ # Register our custom environments
+ import sim.envs.go2_obstacle_env  # noqa: F401
+@@ -224,7 +223,6 @@
+     # ---------------------------------------------------------------------- #
+     import importlib.metadata
+     rsl_rl_version = importlib.metadata.version("rsl-rl-lib")
+-    handle_deprecated_rsl_rl_cfg(agent_cfg, rsl_rl_version)
+     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+ 
+     if args_cli.resume:
+--- a/sim/agents/go2_ppo_cfg.py
++++ b/sim/agents/go2_ppo_cfg.py
+@@ -15,7 +15,7 @@
+     max_iterations = 1500
+     save_interval = 50
+     experiment_name = "go2_obstacle_course"
+-    empirical_normalization = False
++    obs_groups = {"policy": ["policy"], "critic": ["policy"]}
+     policy = RslRlPpoActorCriticCfg(
+         init_noise_std=1.0,
+         actor_obs_normalization=False,
+--- a/sim/scripts/play.py
++++ b/sim/scripts/play.py
+@@ -84,10 +84,10 @@
+     # Get the policy
+     policy = runner.get_inference_policy(device=agent_cfg.device)
+ 
+-    obs, _ = env.get_observations()
++    obs = env.get_observations()
+     for step in range(args_cli.num_steps):
+         actions = policy(obs)
+-        obs, _, _, _, _ = env.step(actions)
++        obs, _, _, _ = env.step(actions)
+ 
+     print("[INFO] Evaluation complete.")
+     env.close()
