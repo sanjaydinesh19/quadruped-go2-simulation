@@ -1,0 +1,13 @@
+term,weight,purpose
+track_lin_vel_xy_exp,1.5,follow the commanded linear velocity
+track_ang_vel_z_exp,0.75,follow the commanded yaw rate
+feet_air_time,0.01,take real steps instead of shuffling
+lin_vel_z_l2,-2.0,penalise vertical bouncing
+flat_orientation_l2,-1.0,keep the body level
+dof_pos_limits,-0.5,stay away from joint limits
+base_height,-0.5,hold a consistent stance height
+feet_stumble,-0.5,do not clip obstacle edges
+ang_vel_xy_l2,-0.05,penalise roll and pitch rates
+action_rate_l2,-0.01,smooth successive actions
+dof_torques_l2,-0.0002,energy penalty
+dof_acc_l2,-0.00000025,penalise joint jerk

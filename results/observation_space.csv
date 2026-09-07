@@ -1,0 +1,9 @@
+term,dimensions,kind
+base_lin_vel,3,proprioception
+base_ang_vel,3,proprioception
+projected_gravity,3,proprioception
+velocity_commands,3,command
+joint_pos,12,proprioception
+joint_vel,12,proprioception
+actions,12,previous action
+height_scan,187,terrain perception

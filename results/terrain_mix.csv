@@ -1,0 +1,7 @@
+sub_terrain,proportion,description
+pyramid_stairs,0.20,ascending steps
+boxes,0.20,random raised grid blocks
+random_rough,0.20,uniform height noise
+pyramid_stairs_inv,0.15,descending steps
+hf_pyramid_slope,0.15,inclined ramp
+hf_pyramid_slope_inv,0.10,declined ramp
