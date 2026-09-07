@@ -1,0 +1,718 @@
+<title>Go2 Terrain Locomotion - Reinforcement Learning BCSE432E</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* ─── Tokens: light is the base; dark redefines only values ──────────────── */
+:root{
+  --paper:#f4f6f8;
+  --surface:#ffffff;
+  --surface-2:#eceff3;
+  --viewport:#0d1117;
+  --ink:#10141a;
+  --ink-2:#556070;
+  --ink-3:#8a93a1;
+  --rule:#dde3ea;
+  --rule-strong:#c3ccd7;
+  --signal:#2a78d6;
+  --signal-soft:rgba(42,120,214,.12);
+  --signal-2:#eb6834;
+  --signal-2-soft:rgba(235,104,52,.12);
+  --aqua:#1baf7a;
+  --grid:rgba(16,20,26,.09);
+  --shadow:0 1px 2px rgba(16,20,26,.05),0 8px 24px -12px rgba(16,20,26,.18);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f1216;
+    --surface:#171b21;
+    --surface-2:#1e232b;
+    --viewport:#05070a;
+    --ink:#eef1f5;
+    --ink-2:#a3adbb;
+    --ink-3:#6d7784;
+    --rule:#262c35;
+    --rule-strong:#39414d;
+    --signal:#3987e5;
+    --signal-soft:rgba(57,135,229,.18);
+    --signal-2:#d95926;
+    --signal-2-soft:rgba(217,89,38,.18);
+    --aqua:#199e70;
+    --grid:rgba(238,241,245,.10);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f1216;
+  --surface:#171b21;
+  --surface-2:#1e232b;
+  --viewport:#05070a;
+  --ink:#eef1f5;
+  --ink-2:#a3adbb;
+  --ink-3:#6d7784;
+  --rule:#262c35;
+  --rule-strong:#39414d;
+  --signal:#3987e5;
+  --signal-soft:rgba(57,135,229,.18);
+  --signal-2:#d95926;
+  --signal-2-soft:rgba(217,89,38,.18);
+  --aqua:#199e70;
+  --grid:rgba(238,241,245,.10);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;text-wrap:balance;margin:0}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+
+/* ─── Shell ──────────────────────────────────────────────────────────────── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+.spine{max-width:660px}
+section{padding:0 0 12px}
+.rule{height:1px;background:var(--rule);margin:0}
+
+/* ─── Nav ────────────────────────────────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:50;
+  background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--rule);
+}
+.nav-in{max-width:1120px;margin:0 auto;padding:11px 28px;display:flex;align-items:center;gap:22px}
+.brand{font-family:Archivo;font-weight:800;font-size:14px;letter-spacing:-.01em;white-space:nowrap}
+.brand .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--signal);margin-right:8px;vertical-align:middle}
+.nav-links{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}
+.nav-links a{
+  font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-2);text-decoration:none;padding:3px 0;border-bottom:1px solid transparent;
+}
+.nav-links a:hover{color:var(--ink);border-bottom-color:var(--signal)}
+.tbtn{
+  border:1px solid var(--rule-strong);background:var(--surface);color:var(--ink-2);
+  border-radius:5px;cursor:pointer;padding:5px 9px;font-family:"JetBrains Mono",monospace;
+  font-size:11px;line-height:1;
+}
+.tbtn:hover{color:var(--ink);border-color:var(--signal)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+/* ─── Eyebrow ────────────────────────────────────────────────────────────── */
+.eyebrow{
+  font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+/* ─── Hero ───────────────────────────────────────────────────────────────── */
+.hero{padding:52px 0 34px}
+.hero h1{font-size:clamp(38px,6.4vw,66px);font-weight:800;letter-spacing:-.033em;line-height:1.02}
+.hero h1 em{font-style:normal;color:var(--signal)}
+.lede{font-size:19px;color:var(--ink-2);margin:18px 0 0;max-width:60ch}
+.tagrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}
+.tag{
+  font-family:"JetBrains Mono",monospace;font-size:11px;padding:4px 9px;border-radius:4px;
+  background:var(--surface);border:1px solid var(--rule);color:var(--ink-2);
+}
+
+/* ─── Stat strip ─────────────────────────────────────────────────────────── */
+.stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border:1px solid var(--rule);border-radius:9px;overflow:hidden;background:var(--surface);
+  margin:28px 0 0;box-shadow:var(--shadow);
+}
+.stat{padding:16px 18px;border-right:1px solid var(--rule)}
+.stat:last-child{border-right:none}
+.stat .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:23px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
+.stat .v .u{font-size:13px;font-weight:400;color:var(--ink-3);margin-left:3px}
+.stat .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-top:5px}
+
+/* ─── Section heads ──────────────────────────────────────────────────────── */
+.shead{padding:52px 0 0}
+.shead h2{font-size:clamp(25px,3.4vw,35px);font-weight:700;letter-spacing:-.025em}
+.shead p{color:var(--ink-2);margin:12px 0 0;max-width:64ch}
+
+/* ─── Viewport / video ───────────────────────────────────────────────────── */
+.screen{
+  background:var(--viewport);border-radius:11px;overflow:hidden;
+  border:1px solid var(--rule-strong);box-shadow:var(--shadow);margin-top:24px;
+}
+.screen video{display:block;width:100%;height:auto;background:var(--viewport)}
+.screen-bar{
+  display:flex;align-items:center;gap:12px;padding:9px 14px;
+  border-bottom:1px solid rgba(255,255,255,.09);
+  font-family:"JetBrains Mono",monospace;font-size:11px;color:#8b95a4;flex-wrap:wrap;
+}
+.screen-bar .led{width:7px;height:7px;border-radius:50%;background:var(--signal);flex:none}
+.screen-bar .sp{margin-left:auto;color:#5d6673}
+.termbar{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}
+.tbn{
+  font-family:"JetBrains Mono",monospace;font-size:12px;padding:7px 13px;border-radius:6px;
+  border:1px solid var(--rule-strong);background:var(--surface);color:var(--ink-2);cursor:pointer;
+}
+.tbn:hover{color:var(--ink);border-color:var(--signal)}
+.tbn[aria-selected="true"]{background:var(--signal);border-color:var(--signal);color:#fff;font-weight:700}
+.vcap{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;color:var(--ink-2);font-size:15px}
+.vcap b{color:var(--ink);font-weight:600}
+
+/* ─── Panels & grids ─────────────────────────────────────────────────────── */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:22px;box-shadow:var(--shadow)}
+.panel h3{font-size:15px;font-weight:700;letter-spacing:-.005em}
+.panel .sub{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);margin-top:5px;letter-spacing:.03em}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-top:24px;align-items:start}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:24px;align-items:start}
+
+/* ─── Charts ─────────────────────────────────────────────────────────────── */
+.chartwrap{margin-top:16px;overflow-x:auto}
+svg{display:block;max-width:100%}
+svg text{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+.tip{
+  position:fixed;pointer-events:none;z-index:99;background:var(--ink);color:var(--paper);
+  border-radius:6px;padding:7px 10px;font-family:"JetBrains Mono",monospace;font-size:11.5px;
+  line-height:1.5;opacity:0;transition:opacity .1s;white-space:nowrap;box-shadow:var(--shadow);
+}
+
+/* ─── Spec list ──────────────────────────────────────────────────────────── */
+.spec{display:grid;grid-template-columns:1fr auto;gap:2px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.spec dt{color:var(--ink-3);padding:6px 0;border-bottom:1px solid var(--rule)}
+.spec dd{margin:0;padding:6px 0;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--rule);font-weight:500}
+.spec dt:last-of-type,.spec dd:last-of-type{border-bottom:none}
+
+/* ─── Pipeline ───────────────────────────────────────────────────────────── */
+.pipe{display:grid;gap:10px;margin-top:24px}
+.pnode{
+  display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;
+  background:var(--surface);border:1px solid var(--rule);border-radius:9px;padding:14px 18px;
+}
+.pnode .idx{
+  font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--signal);font-weight:700;
+  border:1px solid var(--signal);border-radius:5px;padding:3px 7px;background:var(--signal-soft);
+}
+.pnode h4{font-size:14px;font-weight:700}
+.pnode p{margin:3px 0 0;font-size:14px;color:var(--ink-2)}
+.pnode .meta{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-3);text-align:right;white-space:nowrap}
+.parrow{text-align:center;color:var(--rule-strong);font-size:13px;line-height:1;margin:-4px 0}
+
+/* ─── Log entries ────────────────────────────────────────────────────────── */
+.log{display:grid;gap:0;margin-top:22px;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--surface)}
+.lrow{display:grid;grid-template-columns:150px 1fr;gap:20px;padding:15px 20px;border-bottom:1px solid var(--rule)}
+.lrow:last-child{border-bottom:none}
+.lrow .lk{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--signal-2);letter-spacing:.04em;padding-top:2px}
+.lrow .lv{font-size:15px;color:var(--ink-2)}
+.lrow .lv b{color:var(--ink);font-weight:600}
+code{font-family:"JetBrains Mono",monospace;font-size:.87em;background:var(--surface-2);padding:1.5px 5px;border-radius:4px;color:var(--ink)}
+
+/* ─── Future ─────────────────────────────────────────────────────────────── */
+.fcard{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:19px;border-top:2px solid var(--signal)}
+.fcard:nth-child(2){border-top-color:var(--signal-2)}
+.fcard:nth-child(3){border-top-color:var(--aqua)}
+.fcard h4{font-size:14.5px;font-weight:700;margin-bottom:7px}
+.fcard p{margin:0;font-size:14.5px;color:var(--ink-2)}
+
+footer{padding:44px 0 60px;color:var(--ink-3);font-size:13.5px}
+footer .mono{font-size:11.5px;letter-spacing:.03em}
+
+@media (max-width:640px){
+  .spine{max-width:none}
+  .lrow{grid-template-columns:1fr;gap:6px}
+  .stat{border-right:none;border-bottom:1px solid var(--rule)}
+  .pnode{grid-template-columns:auto 1fr;}
+  .pnode .meta{grid-column:2;text-align:left}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><span class="dot"></span>Go2 Terrain Locomotion - Reinforcement Learning BCSE432E</div>
+    <div class="nav-links">
+      <a href="#demo">Demo</a>
+      <a href="#training">Training</a>
+      <a href="#policy">Policy</a>
+      <a href="#reward">Reward</a>
+      <a href="#system">System</a>
+      <a href="#next">Next</a>
+    </div>
+    <button class="tbtn" id="themeBtn" aria-label="Toggle colour theme">◐ theme</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ───────────── HERO ───────────── -->
+  <header class="hero">
+    <div class="eyebrow">Deep Reinforcement Learning · NVIDIA Isaac Lab</div>
+    <h1>A quadruped that taught&nbsp;itself to walk on <em>six terrains</em>.</h1>
+    <p class="lede">
+      A Unitree Go2 learns locomotion from scratch with PPO — no gait scripted, no
+      trajectory hand-authored. 4,096 robots train in parallel on a single GPU,
+      and 147 million simulated steps later the policy walks stairs, slopes and
+      rubble under velocity command.
+    </p>
+    <div class="tagrow">
+      <span class="tag">PPO · RSL-RL 3.1.2</span>
+      <span class="tag">Isaac Sim 5.1.0</span>
+      <span class="tag">Isaac Lab 2.3.2</span>
+      <span class="tag">RTX 4090 · 24 GB</span>
+      <span class="tag">PyTorch 2.7.0+cu128</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="v">147<span class="u">M</span></div><div class="k">Sim steps</div></div>
+      <div class="stat"><div class="v">4,096</div><div class="k">Parallel envs</div></div>
+      <div class="stat"><div class="v">1,500</div><div class="k">PPO iterations</div></div>
+      <div class="stat"><div class="v">76<span class="u">min</span></div><div class="k">Wall clock</div></div>
+      <div class="stat"><div class="v">19.77</div><div class="k">Final reward</div></div>
+    </div>
+  </header>
+
+  <!-- ───────────── DEMO ───────────── -->
+  <section id="demo">
+    <div class="shead">
+      <div class="eyebrow">The result</div>
+      <h2>One policy. Every terrain.</h2>
+      <p>
+        The same network weights drive all six clips below. Nothing is re-tuned between
+        terrains — the policy reads a height scan of the ground ahead and adapts its gait
+        on the fly.
+      </p>
+    </div>
+
+    <div class="termbar" role="tablist" aria-label="Terrain">
+      <button class="tbn" role="tab" aria-selected="true"  data-t="obstacle">obstacle</button>
+      <button class="tbn" role="tab" aria-selected="false" data-t="stairs">stairs</button>
+      <button class="tbn" role="tab" aria-selected="false" data-t="slopes">slopes</button>
+      <button class="tbn" role="tab" aria-selected="false" data-t="hard">hard</button>
+      <button class="tbn" role="tab" aria-selected="false" data-t="easy">easy</button>
+      <button class="tbn" role="tab" aria-selected="false" data-t="flat">flat</button>
+    </div>
+
+    <div class="screen">
+      <div class="screen-bar">
+        <span class="led"></span>
+        <span id="vTitle">terrain · obstacle</span>
+        <span class="sp" id="vMeta">1280×720 · 50 fps · 8.0 s · model_1499.pt</span>
+      </div>
+      <video id="vid" src="videos/go2_obstacle.mp4" autoplay muted loop playsinline></video>
+    </div>
+    <div class="vcap">
+      <span id="vDesc"><b>Obstacle course</b> — the training distribution: stairs, boxes, rough ground and slopes mixed together.</span>
+    </div>
+  </section>
+
+  <!-- ───────────── TRAINING ───────────── -->
+  <section id="training">
+    <div class="shead">
+      <div class="eyebrow">How it learned</div>
+      <h2>From falling over to 19.77.</h2>
+      <p>
+        Mean episode reward, sampled live during the run. The policy starts deeply
+        negative — the robot collapses immediately and is penalised for it — crosses
+        zero at roughly iteration 60, then climbs steadily as the terrain curriculum
+        escalates beneath it.
+      </p>
+    </div>
+
+    <div class="panel" style="margin-top:24px">
+      <h3>Mean episode reward vs. PPO iteration</h3>
+      <div class="sub">8 samples observed during the run · final 19.77 at iteration 1499</div>
+      <div class="chartwrap"><svg id="rewardChart" width="1000" height="330" role="img"
+        aria-label="Mean episode reward rising from -7.86 at iteration 29 to 19.77 at iteration 1499"></svg></div>
+    </div>
+
+    <div class="g3">
+      <div class="panel">
+        <h3>Episode length</h3>
+        <div class="sub">late training</div>
+        <div class="v mono" style="font-size:29px;font-weight:700;margin-top:12px;letter-spacing:-.02em">940<span style="font-size:15px;color:var(--ink-3);font-weight:400">/1000</span></div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">Steps survived before timeout. The robot now almost always reaches the end of the episode.</p>
+      </div>
+      <div class="panel">
+        <h3>Fall rate</h3>
+        <div class="sub">base-contact terminations</div>
+        <div class="v mono" style="font-size:29px;font-weight:700;margin-top:12px;letter-spacing:-.02em">8.7<span style="font-size:15px;color:var(--ink-3);font-weight:400">%</span></div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">Episodes ending with the body striking the ground, across the full obstacle mix.</p>
+      </div>
+      <div class="panel">
+        <h3>Throughput</h3>
+        <div class="sub">measured, 4096 envs</div>
+        <div class="v mono" style="font-size:29px;font-weight:700;margin-top:12px;letter-spacing:-.02em">37.4<span style="font-size:15px;color:var(--ink-3);font-weight:400">k steps/s</span></div>
+        <p style="margin:8px 0 0;font-size:14.5px;color:var(--ink-2)">2.63 s per iteration, of which only 0.073 s is the gradient update. Physics dominates.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── POLICY ───────────── -->
+  <section id="policy">
+    <div class="shead">
+      <div class="eyebrow">The policy</div>
+      <h2>235 numbers in, 12 joint targets out.</h2>
+      <p>
+        An actor–critic MLP. Every 20 ms the actor reads the robot's proprioception plus
+        a 187-point height scan of the terrain ahead, and emits target positions for the
+        twelve leg joints. A PD controller turns those into torques at 200 Hz.
+      </p>
+    </div>
+
+    <div class="g2">
+      <div class="panel">
+        <h3>Observation vector</h3>
+        <div class="sub">235 dimensions · what the robot senses</div>
+        <div class="chartwrap"><svg id="obsChart" width="520" height="290" role="img"
+          aria-label="Observation composition: height scan 187 of 235 dimensions, dominating all proprioceptive terms"></svg></div>
+      </div>
+      <div class="panel">
+        <h3>Network &amp; PPO</h3>
+        <div class="sub">actor–critic, ELU activations</div>
+        <dl class="spec" style="margin-top:16px">
+          <dt>actor</dt><dd>235→512→256→128→12</dd>
+          <dt>critic</dt><dd>235→512→256→128→1</dd>
+          <dt>steps / env</dt><dd>24</dd>
+          <dt>batch / iter</dt><dd>98,304</dd>
+          <dt>learning rate</dt><dd>1e-3 adaptive</dd>
+          <dt>desired KL</dt><dd>0.01</dd>
+          <dt>clip param</dt><dd>0.2</dd>
+          <dt>epochs</dt><dd>5 × 4 minibatch</dd>
+          <dt>gamma / lambda</dt><dd>0.99 / 0.95</dd>
+          <dt>entropy coef</dt><dd>0.01</dd>
+          <dt>init noise std</dt><dd>1.0</dd>
+          <dt>control</dt><dd>50 Hz policy / 200 Hz sim</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── REWARD ───────────── -->
+  <section id="reward">
+    <div class="shead">
+      <div class="eyebrow">Reward design</div>
+      <h2>Two terms ask for motion. Ten keep it honest.</h2>
+      <p>
+        This is where the gait actually comes from. Velocity tracking supplies the goal;
+        every other term is a penalty that rules out a cheap way to achieve it — hopping,
+        scrambling, dragging a foot, or burning the motors to do it.
+      </p>
+    </div>
+
+    <div class="panel" style="margin-top:24px">
+      <h3>Reward term weights</h3>
+      <div class="sub">bar length ∝ ∛|weight| — values span seven orders of magnitude</div>
+      <div class="chartwrap"><svg id="rewChart" width="1000" height="472" role="img"
+        aria-label="Twelve reward terms; two positive tracking rewards and ten negative penalty terms"></svg></div>
+    </div>
+  </section>
+
+  <!-- ───────────── SYSTEM ───────────── -->
+  <section id="system">
+    <div class="shead">
+      <div class="eyebrow">System architecture</div>
+      <h2>The loop, end to end.</h2>
+    </div>
+
+    <div class="pipe">
+      <div class="pnode">
+        <span class="idx">01</span>
+        <div><h4>Terrain generator</h4><p>A 10×20 grid of 8×8 m tiles, procedurally built from six sub-terrain types with a difficulty curriculum.</p></div>
+        <span class="meta">200 tiles</span>
+      </div>
+      <div class="parrow">↓</div>
+      <div class="pnode">
+        <span class="idx">02</span>
+        <div><h4>Isaac Sim physics</h4><p>4,096 Go2 robots stepped in parallel on one GPU at 200 Hz, each with its own terrain patch and velocity command.</p></div>
+        <span class="meta">4,096 envs</span>
+      </div>
+      <div class="parrow">↓</div>
+      <div class="pnode">
+        <span class="idx">03</span>
+        <div><h4>Observation &amp; reward managers</h4><p>Isaac Lab assembles the 235-dim observation and evaluates twelve weighted reward terms per robot per step.</p></div>
+        <span class="meta">235 dims · 12 terms</span>
+      </div>
+      <div class="parrow">↓</div>
+      <div class="pnode">
+        <span class="idx">04</span>
+        <div><h4>PPO update — RSL-RL</h4><p>24 steps rolled out across every env, then five epochs of clipped policy-gradient over four minibatches.</p></div>
+        <span class="meta">98,304 samples</span>
+      </div>
+      <div class="parrow">↓</div>
+      <div class="pnode">
+        <span class="idx">05</span>
+        <div><h4>Checkpoint &amp; render</h4><p>Weights saved every 50 iterations; the final policy is replayed headless across all six terrain presets to 720p video.</p></div>
+        <span class="meta">30 checkpoints</span>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="panel">
+        <h3>Terrain composition</h3>
+        <div class="sub">the "obstacle" training mix</div>
+        <div class="chartwrap"><svg id="terrChart" width="520" height="230" role="img"
+          aria-label="Terrain mix: boxes, random rough and pyramid stairs each 20 percent, inverted stairs and slopes 15 percent, inverted slopes 10 percent"></svg></div>
+      </div>
+      <div class="panel">
+        <h3>Hardware &amp; runtime</h3>
+        <div class="sub">rented single-GPU node</div>
+        <dl class="spec" style="margin-top:16px">
+          <dt>GPU</dt><dd>RTX 4090 24 GB</dd>
+          <dt>peak VRAM</dt><dd>3.1 GB</dd>
+          <dt>CPU</dt><dd>Ryzen 9 7950X · 32 t</dd>
+          <dt>RAM</dt><dd>124 GB</dd>
+          <dt>iteration time</dt><dd>2.84 s</dd>
+          <dt>collect / learn</dt><dd>2.55 s / 0.07 s</dd>
+          <dt>total run</dt><dd>~76 min</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── NEXT ───────────── -->
+  <section id="next">
+    <div class="shead">
+      <div class="eyebrow">Future implementation</div>
+      <h2>Where this goes next.</h2>
+    </div>
+
+    <div class="g3">
+      <div class="fcard">
+        <h4>Asymmetric actor–critic</h4>
+        <p>The critic currently sees exactly what the actor sees. Feeding it privileged simulator state — true friction, contact forces, terrain height — sharpens the value estimate at no deployment cost.</p>
+      </div>
+      <div class="fcard">
+        <h4>Domain randomisation</h4>
+        <p>Randomise mass, friction, motor strength and latency, then measure survival under held-out perturbations. This is the gap between a policy that works in sim and one that survives contact with a real floor.</p>
+      </div>
+      <div class="fcard">
+        <h4>Sim-to-real transfer</h4>
+        <p>Export to TorchScript and run on physical Go2 hardware. The observation vector is already deployable except for the height scan, which needs a real depth camera.</p>
+      </div>
+      <div class="fcard">
+        <h4>Teacher–student distillation</h4>
+        <p>Distil this height-scan policy into a blind student that walks on proprioception alone — the standard route to robust hardware locomotion.</p>
+      </div>
+      <div class="fcard">
+        <h4>Harder curriculum</h4>
+        <p>The <code>hard</code> preset is stiffer than anything in the training mix, and the footage shows it. Training directly on it should close that gap.</p>
+      </div>
+      <div class="fcard">
+        <h4>Live training console</h4>
+        <p>The upstream repo ships a FastAPI + React dashboard for launching runs and streaming reward curves in the browser. Wiring it up turns this from a result into a platform.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule" style="margin-top:52px"></div>
+  <footer>
+    <div class="spine">
+      Unitree Go2 · PPO · NVIDIA Isaac Lab 2.3.2 · Isaac Sim 5.1.0 · RSL-RL 3.1.2.
+      All figures on this page were measured during the run described above.
+      <div class="mono" style="margin-top:12px;color:var(--ink-3)">
+        1500 ITER · 4096 ENV · 147,456,000 STEPS · FINAL REWARD 19.77 · MODEL_1499.PT
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ── theme ───────────────────────────────────────────────────────────── */
+  var root=document.documentElement, btn=document.getElementById("themeBtn");
+  btn.addEventListener("click",function(){
+    var cur=root.getAttribute("data-theme");
+    if(!cur){ cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark":"light"; }
+    root.setAttribute("data-theme", cur==="dark"?"light":"dark");
+    drawAll();
+  });
+
+  /* ── video switching ─────────────────────────────────────────────────── */
+  var DESC={
+    obstacle:["Obstacle course","the training distribution: stairs, boxes, rough ground and slopes mixed together."],
+    stairs:["Pyramid stairs","ascending and descending steps — the hardest contact-timing problem."],
+    slopes:["Slopes","continuous inclines, where the body must pitch to stay balanced."],
+    hard:["Hard mix","steeper and rougher than anything in training — the policy's weakest showing."],
+    easy:["Easy mix","gentle noise and shallow slopes, the low end of the curriculum."],
+    flat:["Flat ground","the sanity baseline; the gait is fastest and cleanest here."]
+  };
+  var vid=document.getElementById("vid"), vT=document.getElementById("vTitle"), vD=document.getElementById("vDesc");
+  document.querySelectorAll(".tbn").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".tbn").forEach(function(x){x.setAttribute("aria-selected","false")});
+      b.setAttribute("aria-selected","true");
+      var t=b.dataset.t, d=DESC[t];
+      vid.src="videos/go2_"+t+".mp4"; vid.play().catch(function(){});
+      vT.textContent="terrain · "+t;
+      vD.innerHTML="<b>"+d[0]+"</b> — "+d[1];
+    });
+  });
+
+  /* ── chart helpers ───────────────────────────────────────────────────── */
+  var NS="http://www.w3.org/2000/svg", tip=document.getElementById("tip");
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim();}
+  function txt(s,x,y,a){
+    var t=el("text",{x:x,y:y,fill:a.fill||css("--ink-2"),"font-size":a.size||11,
+      "text-anchor":a.anchor||"start","font-weight":a.weight||400,"dominant-baseline":a.base||"auto"});
+    t.textContent=s; return t;
+  }
+  function showTip(html,e){ tip.innerHTML=html; tip.style.opacity=1;
+    tip.style.left=Math.min(e.clientX+14, innerWidth-tip.offsetWidth-10)+"px";
+    tip.style.top=(e.clientY-tip.offsetHeight-10)+"px"; }
+  function hideTip(){ tip.style.opacity=0; }
+
+  /* ── 1. reward curve ─────────────────────────────────────────────────── */
+  var REWARD=[
+    {it:29,r:-7.86},{it:103,r:2.10},{it:198,r:5.78},{it:291,r:9.16},
+    {it:433,r:10.96},{it:895,r:15.24},{it:1444,r:18.26},{it:1499,r:19.77}
+  ];
+  function drawReward(){
+    var svg=document.getElementById("rewardChart"); svg.innerHTML="";
+    var W=1000,H=330,L=52,R=22,T=22,B=44, iw=W-L-R, ih=H-T-B;
+    var ink=css("--ink"), ink2=css("--ink-2"), ink3=css("--ink-3"), sig=css("--signal"), grid=css("--grid");
+    var xmin=0,xmax=1500,ymin=-10,ymax=22;
+    var X=function(v){return L+(v-xmin)/(xmax-xmin)*iw;};
+    var Y=function(v){return T+ih-(v-ymin)/(ymax-ymin)*ih;};
+
+    [-10,-5,0,5,10,15,20].forEach(function(v){
+      var zero = v===0;
+      svg.appendChild(el("line",{x1:L,x2:L+iw,y1:Y(v),y2:Y(v),
+        stroke:zero?css("--rule-strong"):grid,"stroke-width":zero?1.5:1}));
+      svg.appendChild(txt(String(v),L-9,Y(v),{anchor:"end",base:"middle",size:11,fill:ink3}));
+    });
+    [0,250,500,750,1000,1250,1500].forEach(function(v){
+      svg.appendChild(txt(String(v),X(v),T+ih+20,{anchor:"middle",size:11,fill:ink3}));
+    });
+    svg.appendChild(txt("mean reward",L-9,T-8,{anchor:"end",size:10,fill:ink3}));
+    svg.appendChild(txt("PPO iteration",L+iw,T+ih+38,{anchor:"end",size:10,fill:ink3}));
+
+    var d="",a="";
+    REWARD.forEach(function(p,i){ d+=(i?" L":"M")+X(p.it)+" "+Y(p.r); });
+    a=d+" L"+X(REWARD[REWARD.length-1].it)+" "+Y(ymin)+" L"+X(REWARD[0].it)+" "+Y(ymin)+" Z";
+    svg.appendChild(el("path",{d:a,fill:sig,opacity:.10,stroke:"none"}));
+    svg.appendChild(el("path",{d:d,fill:"none",stroke:sig,"stroke-width":2,
+      "stroke-linejoin":"round","stroke-linecap":"round"}));
+
+    REWARD.forEach(function(p,i){
+      var last=i===REWARD.length-1;
+      svg.appendChild(el("circle",{cx:X(p.it),cy:Y(p.r),r:last?6:4.5,fill:sig,
+        stroke:css("--surface"),"stroke-width":2}));
+      var hit=el("circle",{cx:X(p.it),cy:Y(p.r),r:16,fill:"transparent",style:"cursor:pointer"});
+      hit.addEventListener("mousemove",function(e){
+        showTip("iteration <b>"+p.it+"</b><br>reward <b>"+p.r.toFixed(2)+"</b>",e);});
+      hit.addEventListener("mouseleave",hideTip);
+      svg.appendChild(hit);
+    });
+
+    /* milestone annotations */
+    var z=REWARD[0];
+    svg.appendChild(txt("−7.86  robot collapses",X(z.it)+12,Y(z.r)+5,{size:11,fill:ink2}));
+    var f=REWARD[REWARD.length-1];
+    svg.appendChild(txt("19.77",X(f.it)-8,Y(f.r)-14,{anchor:"end",size:14,weight:700,fill:ink}));
+    svg.appendChild(txt("final",X(f.it)-8,Y(f.r)-1,{anchor:"end",size:10,fill:ink3}));
+    svg.appendChild(el("line",{x1:X(60),x2:X(60),y1:Y(0),y2:Y(0)-30,stroke:css("--rule-strong"),"stroke-width":1,"stroke-dasharray":"3 3"}));
+    svg.appendChild(txt("crosses zero ≈ iter 60",X(60)+7,Y(0)-34,{size:11,fill:ink2}));
+  }
+
+  /* ── 2. observation composition ──────────────────────────────────────── */
+  var OBS=[
+    {k:"height_scan",v:187},{k:"joint_pos",v:12},{k:"joint_vel",v:12},{k:"actions",v:12},
+    {k:"base_lin_vel",v:3},{k:"base_ang_vel",v:3},{k:"projected_gravity",v:3},{k:"velocity_commands",v:3}
+  ];
+  function drawObs(){
+    var svg=document.getElementById("obsChart"); svg.innerHTML="";
+    var W=520,H=290,L=132,R=72,T=10, bh=22, gap=8;
+    var sig=css("--signal"), ink=css("--ink"), ink3=css("--ink-3"), iw=W-L-R;
+    var max=187;
+    OBS.forEach(function(o,i){
+      var y=T+i*(bh+gap), w=Math.max(2,o.v/max*iw);
+      svg.appendChild(txt(o.k,L-10,y+bh/2,{anchor:"end",base:"middle",size:11,fill:ink3}));
+      var r=el("rect",{x:L,y:y,width:w,height:bh,rx:4,fill:sig,opacity:i===0?1:.55,style:"cursor:pointer"});
+      r.addEventListener("mousemove",function(e){
+        showTip(o.k+"<br><b>"+o.v+"</b> dims · "+(o.v/235*100).toFixed(1)+"%",e);});
+      r.addEventListener("mouseleave",hideTip);
+      svg.appendChild(r);
+      svg.appendChild(txt(String(o.v),L+w+8,y+bh/2,{base:"middle",size:11,weight:700,fill:ink}));
+    });
+    svg.appendChild(txt("187 of 235 dimensions are terrain perception",L,H-14,{size:11,fill:ink3}));
+  }
+
+  /* ── 3. reward terms ─────────────────────────────────────────────────── */
+  var TERMS=[
+    {k:"track_lin_vel_xy_exp",w:1.5},{k:"track_ang_vel_z_exp",w:0.75},{k:"feet_air_time",w:0.01},
+    {k:"lin_vel_z_l2",w:-2.0},{k:"flat_orientation_l2",w:-1.0},{k:"dof_pos_limits",w:-0.5},
+    {k:"base_height",w:-0.5},{k:"feet_stumble",w:-0.5},{k:"ang_vel_xy_l2",w:-0.05},
+    {k:"action_rate_l2",w:-0.01},{k:"dof_torques_l2",w:-0.0002},{k:"dof_acc_l2",w:-0.00000025}
+  ];
+  var WHY={
+    track_lin_vel_xy_exp:"go where you are told",track_ang_vel_z_exp:"turn as commanded",
+    feet_air_time:"take real steps, don't shuffle",lin_vel_z_l2:"don't bounce",
+    flat_orientation_l2:"keep the body level",dof_pos_limits:"stay off the joint stops",
+    base_height:"hold stance height",feet_stumble:"don't clip obstacles",
+    ang_vel_xy_l2:"no roll or pitch spin",action_rate_l2:"smooth commands",
+    dof_torques_l2:"save energy",dof_acc_l2:"no jerk"
+  };
+  function drawRew(){
+    var svg=document.getElementById("rewChart"); svg.innerHTML="";
+    var W=1000,H=472,MID=440,T=16,bh=22,gap=11, half=190, LBL=200;
+    var sig=css("--signal"), sig2=css("--signal-2"), ink=css("--ink"), ink2=css("--ink-2"), ink3=css("--ink-3");
+    var cb=function(w){return Math.cbrt(Math.abs(w));};
+    var maxc=cb(2.0);
+    svg.appendChild(el("line",{x1:MID,x2:MID,y1:T-6,y2:T+TERMS.length*(bh+gap),
+      stroke:css("--rule-strong"),"stroke-width":1.5}));
+    TERMS.forEach(function(t,i){
+      var y=T+i*(bh+gap), pos=t.w>0, w=Math.max(3,cb(t.w)/maxc*half);
+      var x=pos?MID:MID-w, col=pos?sig:sig2;
+      svg.appendChild(txt(t.k,LBL,y+bh/2,{anchor:"end",base:"middle",size:11.5,fill:ink3}));
+      var r=el("rect",{x:x,y:y,width:w,height:bh,rx:4,fill:col,style:"cursor:pointer"});
+      r.addEventListener("mousemove",function(e){
+        showTip("<b>"+t.k+"</b><br>weight "+t.w+"<br>"+WHY[t.k],e);});
+      r.addEventListener("mouseleave",hideTip);
+      svg.appendChild(r);
+      var lx=pos?MID+w+9:MID-w-9;
+      svg.appendChild(txt(String(t.w),lx,y+bh/2,{anchor:pos?"start":"end",base:"middle",size:11,weight:700,fill:ink}));
+      svg.appendChild(txt(WHY[t.k],MID+ (pos? w+58 : 12), y+bh/2,{base:"middle",size:11,fill:ink2}));
+    });
+    var by=T+TERMS.length*(bh+gap)+16;
+    svg.appendChild(el("rect",{x:MID-half,y:by,width:11,height:11,rx:3,fill:sig2}));
+    svg.appendChild(txt("penalty",MID-half+17,by+9,{size:11,fill:ink2}));
+    svg.appendChild(el("rect",{x:MID-half+76,y:by,width:11,height:11,rx:3,fill:sig}));
+    svg.appendChild(txt("reward",MID-half+93,by+9,{size:11,fill:ink2}));
+  }
+
+  /* ── 4. terrain mix ──────────────────────────────────────────────────── */
+  var TERR=[
+    {k:"pyramid stairs",v:20},{k:"boxes",v:20},{k:"random rough",v:20},
+    {k:"inverted stairs",v:15},{k:"pyramid slope",v:15},{k:"inverted slope",v:10}
+  ];
+  function drawTerr(){
+    var svg=document.getElementById("terrChart"); svg.innerHTML="";
+    var W=520,H=230,L=124,R=64,T=10,bh=22,gap=10, iw=W-L-R;
+    var sig=css("--signal"), ink=css("--ink"), ink3=css("--ink-3");
+    TERR.forEach(function(t,i){
+      var y=T+i*(bh+gap), w=t.v/20*iw;
+      svg.appendChild(txt(t.k,L-10,y+bh/2,{anchor:"end",base:"middle",size:11,fill:ink3}));
+      var r=el("rect",{x:L,y:y,width:w,height:bh,rx:4,fill:sig,opacity:.55+ (t.v/20)*0.45,style:"cursor:pointer"});
+      r.addEventListener("mousemove",function(e){ showTip(t.k+"<br><b>"+t.v+"%</b> of terrain tiles",e);});
+      r.addEventListener("mouseleave",hideTip);
+      svg.appendChild(r);
+      svg.appendChild(txt(t.v+"%",L+w+8,y+bh/2,{base:"middle",size:11,weight:700,fill:ink}));
+    });
+  }
+
+  function drawAll(){ drawReward(); drawObs(); drawRew(); drawTerr(); }
+  drawAll();
+  addEventListener("resize",function(){ hideTip(); });
+})();
+</script>
