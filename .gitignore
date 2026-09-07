@@ -1,0 +1,22 @@
+# Isaac Lab / RSL-RL run artifacts
+logs/
+runs/
+*.pt
+*.pth
+*.onnx
+events.out.tfevents.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local scratch
+scratch/
+*.log
